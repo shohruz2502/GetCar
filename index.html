@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Chat</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --urgent: #f72585;
+            --dark: #1a1a2e;
+            --darker: #16213e;
+            --light: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--dark);
+            color: var(--light);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            word-break: break-word;
+        }
+        
+        .user-message {
+            background-color: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .bot-message {
+            background-color: #2d3748;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #4a5568;
+        }
+        
+        .system-message {
+            background-color: rgba(74,85,104,0.3);
+            align-self: center;
+            text-align: center;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+        
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            margin-top: 5px;
+            display: block;
+            text-align: right;
+        }
+        
+        .chat-input {
+            padding: 15px;
+            background-color: var(--darker);
+            border-top: 1px solid #4a5568;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #4a5568;
+            border-radius: 8px;
+            background-color: #1a202c;
+            color: white;
+            resize: none;
+            min-height: 50px;
+        }
+        
+        #sendButton {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .urgent-btn {
+            background-color: var(--urgent);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 8px 16px;
+            background-color: #2d3748;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            width: fit-content;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Поддержка (Разработчик)</h2>
+    </div>
+    
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            <div class="system-message">
+                Чат инициализирован. Напишите ваше сообщение.
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            Разработчик печатает...
+        </div>
+        
+        <div class="chat-input">
+            <div class="input-group">
+                <textarea id="messageInput" placeholder="Напишите сообщение..." rows="3"></textarea>
+                <button id="sendButton">→</button>
+            </div>
+            <!-- <button class="urgent-btn" id="urgentBtn">СРОЧНОЕ СООБЩЕНИЕ</button> -->
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация (замените на свои значения)
+        const BOT_TOKEN = '8193753656:AAEbiB6GLquSgKFxaDNTdUBIczhF9T8JEmA';
+        const DEVELOPER_CHAT_ID = '5417959190';
+        
+        // Генерация ID пользователя
+        function getUserId() {
+            let userId = localStorage.getItem('userId');
+            if (!userId) {
+                userId = 'user_' + Math.random().toString(36).substr(2, 8);
+                localStorage.setItem('userId', userId);
+                
+                // Отправляем информацию о новом пользователе
+                const deviceInfo = `Новый пользователь!\nID: ${userId}\nУстройство: ${navigator.userAgent}`;
+                sendToTelegram(deviceInfo, DEVELOPER_CHAT_ID);
+            }
+            return userId;
+        }
+        
+        // Инициализация чата
+        document.addEventListener('DOMContentLoaded', function() {
+            const userId = getUserId();
+            const chat = new SupportChat(userId);
+            chat.init();
+        });
+        
+        class SupportChat {
+            constructor(userId) {
+                this.userId = userId;
+                this.isUrgent = false;
+                this.lastUpdateId = 0;
+                this.messageCount = 0;
+                
+                // DOM элементы
+                this.chatMessages = document.getElementById('chatMessages');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.urgentBtn = document.getElementById('urgentBtn');
+                this.typingIndicator = document.getElementById('typingIndicator');
+            }
+            
+            init() {
+                this.loadMessages();
+                this.setupEventListeners();
+                this.startMessageChecker();
+            }
+            
+            loadMessages() {
+                const messages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+                messages.forEach(msg => {
+                    this.displayMessage(msg.text, msg.sender, msg.isSystem);
+                });
+            }
+            
+            saveMessage(text, sender, isSystem = false) {
+                const messages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+                messages.push({
+                    text: text,
+                    sender: sender,
+                    isSystem: isSystem,
+                    timestamp: new Date().toISOString()
+                });
+                localStorage.setItem('chatMessages', JSON.stringify(messages));
+            }
+            
+            displayMessage(text, sender, isSystem = false) {
+                const messageDiv = document.createElement('div');
+                
+                if (isSystem) {
+                    messageDiv.className = 'message system-message';
+                } else {
+                    messageDiv.className = `message ${sender === 'user' ? 'user-message' : 'bot-message'}`;
+                }
+                
+                const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                messageDiv.innerHTML = `
+                    <div>${text}</div>
+                    <span class="message-time">${time}</span>
+                `;
+                
+                this.chatMessages.appendChild(messageDiv);
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+            
+            async sendToTelegram(text, chatId) {
+                if (!BOT_TOKEN || !chatId) {
+                    this.displayMessage('Ошибка: бот не настроен', 'system', true);
+                    return false;
+                }
+                
+                try {
+                    this.showTyping();
+                    
+                    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            chat_id: chatId,
+                            text: text
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    return result.ok;
+                } catch (error) {
+                    console.error('Ошибка отправки:', error);
+                    this.displayMessage('Ошибка отправки сообщения', 'system', true);
+                    return false;
+                } finally {
+                    this.hideTyping();
+                }
+            }
+            
+            async checkUpdates() {
+                try {
+                    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${this.lastUpdateId + 1}`);
+                    const data = await response.json();
+                    
+                    if (data.ok && data.result.length > 0) {
+                        for (const update of data.result) {
+                            this.lastUpdateId = update.update_id;
+                            
+                            if (update.message && update.message.text) {
+                                // Обработка ответа разработчика
+                                if (update.message.text.includes(`/reply_${this.userId}`)) {
+                                    const messageText = update.message.text.replace(`/reply_${this.userId}`, '').trim();
+                                    
+                                    if (messageText) {
+                                        this.displayMessage(messageText, 'bot');
+                                        this.saveMessage(messageText, 'bot');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка проверки:', error);
+                }
+            }
+            
+            async sendMessage() {
+                const text = this.messageInput.value.trim();
+                if (!text) return;
+                
+                this.displayMessage(text, 'user');
+                this.saveMessage(text, 'user');
+                
+                const prefix = this.isUrgent ? '🚨 СРОЧНО: ' : '';
+                const fullMessage = `${prefix}От ${this.userId}:\n${text}\n\nОтветить: /reply_${this.userId}`;
+                
+                await this.sendToTelegram(fullMessage, DEVELOPER_CHAT_ID);
+                
+                this.messageInput.value = '';
+                this.isUrgent = false;
+                
+                // Лимит сообщений для предотвращения спама
+                this.messageCount++;
+                if (this.messageCount > 5) {
+                    this.displayMessage('Пожалуйста, подождите ответа', 'system', true);
+                    this.sendButton.disabled = true;
+                    setTimeout(() => {
+                        this.sendButton.disabled = false;
+                        this.messageCount = 0;
+                    }, 30000);
+                }
+            }
+            
+            showTyping() {
+                this.typingIndicator.style.display = 'block';
+            }
+            
+            hideTyping() {
+                this.typingIndicator.style.display = 'none';
+            }
+            
+            startMessageChecker() {
+                this.checkUpdates();
+                setInterval(() => this.checkUpdates(), 2000); // Проверка каждые 2 секунды
+            }
+            
+            setupEventListeners() {
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                
+                this.messageInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                
+                this.urgentBtn.addEventListener('click', () => {
+                    this.isUrgent = true;
+                    this.displayMessage('Запрошено срочное подключение...', 'system', true);
+                    this.saveMessage('Запрошено срочное подключение...', 'system', true);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
