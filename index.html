@@ -178,6 +178,36 @@
             font-size: 0.9rem;
         }
     }
+    
+    .restart-button {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 15px;
+        background-color: rgba(0, 255, 255, 0.2);
+        color: #0ff;
+        border: 1px solid #0ff;
+        border-radius: 5px;
+        text-decoration: none;
+        font-family: 'Arial', sans-serif;
+        z-index: 1000;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .restart-button:hover {
+        background-color: rgba(0, 255, 255, 0.4);
+        box-shadow: 0 0 10px #0ff;
+    }
+    
+    @media (max-width: 576px) {
+        .restart-button {
+            top: 15px;
+            right: 15px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+    }
     </style>
 </head>
 <body>
@@ -206,6 +236,7 @@
         </div>
     </div>
     
+    <button class="restart-button" onclick="window.location.reload()">⟳ Перезапуск</button>
     <button class="back-button" onclick="window.close()">× Закрыть</button>
 
     <script>
