@@ -148,6 +148,36 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        .back-button {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        padding: 10px 15px;
+        background-color: rgba(0, 255, 255, 0.2);
+        color: #0ff;
+        border: 1px solid #0ff;
+        border-radius: 5px;
+        text-decoration: none;
+        font-family: 'Arial', sans-serif;
+        z-index: 1000;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .back-button:hover {
+        background-color: rgba(0, 255, 255, 0.4);
+        box-shadow: 0 0 10px #0ff;
+    }
+    
+    @media (max-width: 576px) {
+        .back-button {
+            top: 15px;
+            left: 15px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+    }
     </style>
 </head>
 <body>
@@ -175,6 +205,8 @@
             <button class="urgent-btn" id="urgentBtn">СРОЧНОЕ СООБЩЕНИЕ</button>
         </div>
     </div>
+    
+    <a href="main.html" class="back-button">← Назад</a>
 
     <script>
         // Конфигурация (замените на свои значения)
